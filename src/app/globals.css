@@ -8,6 +8,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-aqua: #1ddbfd;
+  --color-brand-purple: #8f56fd;
+  --color-brand-pink: #f5698c;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
