@@ -96,7 +96,7 @@ export default function SignupPage() {
       if (!res.ok) {
         setError(data.message || "Signup failed");
       } else {
-        setResult(data.output || "Signup successful!");
+        setResult(data.message || "Signup successful!");
       }
     } catch (err: any) {
       setError(err.message);
