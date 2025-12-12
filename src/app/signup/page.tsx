@@ -99,7 +99,9 @@ export default function SignupPage() {
         setError(data.message || "Signup failed");
       } else {
         setResult(data.message || "Signup successful!");
-        router.push("/login");
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
       }
     } catch (err: any) {
       setError(err.message);

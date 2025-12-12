@@ -14,27 +14,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
 
-  // 🔹 Load token on app start (persist login)
+  // 🔁 Load token on app start
   useEffect(() => {
-    const storedToken = localStorage.getItem("auth_token");
+    const storedToken = localStorage.getItem("sekro_token");
     if (storedToken) {
       setTokenState(storedToken);
     }
   }, []);
 
-  // 🔹 Centralized token setter
+  // ✅ Centralized setter
   const setToken = (newToken: string | null) => {
     if (newToken) {
-      localStorage.setItem("auth_token", newToken);
+      localStorage.setItem("sekro_token", newToken);
     } else {
-      localStorage.removeItem("auth_token");
+      localStorage.removeItem("sekro_token");
     }
     setTokenState(newToken);
   };
 
-  // 🔹 Logout helper
   const logout = () => {
-    localStorage.removeItem("auth_token");
+    localStorage.removeItem("sekro_token");
     setTokenState(null);
   };
 
@@ -59,3 +58,4 @@ export function useAuth() {
   }
   return ctx;
 }
+
