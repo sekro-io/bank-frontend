@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 console.log("API URL:", process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL);
 
 export default function LoginPage() {
+  const { setToken } = useAuth(); 
+  const router = useRouter();
+
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
 
@@ -51,8 +56,9 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.message || "Login failed");
       } else {
+        setToken(data.token);
         setResult(data.message || "Login successful!");
-        // later: store token / redirect to dashboard
+        router.push("/dashboard");
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong");

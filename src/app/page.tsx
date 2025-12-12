@@ -1,9 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "./context/AuthContext";
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
+
         {/* Top nav */}
         <header className="flex items-center justify-between mb-24">
           <div className="flex items-center gap-2">
@@ -16,15 +22,23 @@ export default function HomePage() {
           </div>
 
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/login" className="hover:underline">
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-full border border-brand-aqua px-4 py-1.5 font-medium hover:bg-brand-aqua hover:text-slate-950 transition"
-            >
-              Open an account
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard" className="hover:underline">
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="hover:underline">
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-full border border-brand-aqua px-4 py-1.5 font-medium hover:bg-brand-aqua hover:text-slate-950 transition"
+                >
+                  Open an account
+                </Link>
+              </>
+            )}
           </nav>
         </header>
 
@@ -48,19 +62,30 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <Link
-              href="/signup"
-              className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
-            >
-              Open an account
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
+                >
+                  Open an account
+                </Link>
 
-            <Link
-              href="/login"
-              className="rounded-full border border-brand-aqua px-6 py-3 text-sm font-semibold hover:bg-slate-900 transition"
-            >
-              Log in
-            </Link>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-brand-aqua px-6 py-3 text-sm font-semibold hover:bg-slate-900 transition"
+                >
+                  Log in
+                </Link>
+              </>
+            )}
           </div>
 
           <p className="text-xs text-slate-400 mt-10 max-w-xl">
@@ -69,6 +94,7 @@ export default function HomePage() {
             and PostgreSQL.
           </p>
         </section>
+
       </div>
     </main>
   );

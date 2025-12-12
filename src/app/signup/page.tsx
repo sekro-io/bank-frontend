@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 console.log("API URL:", process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL);
 
 export default function SignupPage() {
+  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail]       = useState("");
@@ -97,6 +99,7 @@ export default function SignupPage() {
         setError(data.message || "Signup failed");
       } else {
         setResult(data.message || "Signup successful!");
+        router.push("/login");
       }
     } catch (err: any) {
       setError(err.message);
