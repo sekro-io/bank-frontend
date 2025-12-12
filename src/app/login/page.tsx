@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 console.log("API URL:", process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL);
 
@@ -53,10 +54,19 @@ export default function LoginPage() {
 
       const data = await res.json();
 
+      console.log("[Login] raw response:", data);
+      console.log("[Login] token value:", data?.token);
+      console.log("[Login] token type:", typeof data?.token);
+
       if (!res.ok) {
         setError(data.message || "Login failed");
       } else {
+        if (!data.token) {
+            console.error("❌ LOGIN SUCCESS BUT TOKEN IS MISSING");
+        }
         setToken(data.token);
+        console.log("[Login] setToken called");
+
         setResult(data.message || "Login successful!");
         router.push("/dashboard");
       }
@@ -121,6 +131,17 @@ export default function LoginPage() {
             {result}
           </p>
         )}
+
+        {/* Signup link */}
+        <div className="mt-6 text-center text-sm text-slate-400">
+        <span>Don’t have an account?</span>{" "}
+        <Link
+            href="/signup"
+            className="text-brand-aqua hover:underline font-medium"
+        >
+            Open one
+        </Link>
+        </div>
       </div>
     </main>
   );

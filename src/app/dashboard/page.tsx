@@ -3,23 +3,35 @@
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import TopNav from "../components/TopNav";
 
 export default function DashboardPage() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
-  // 🔒 Protect route
   useEffect(() => {
-    if (!isAuthenticated) {
+    console.log("[Dashboard] loading:", loading, "auth:", isAuthenticated);
+
+    if (!loading && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [loading, isAuthenticated, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+        Checking session…
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
-    return null; // prevents flicker
+    return null;
   }
 
   return (
+    <>
+    <TopNav />
     <main className="min-h-screen bg-slate-950 text-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
 
@@ -31,16 +43,6 @@ export default function DashboardPage() {
               Welcome to your personal banking dashboard
             </p>
           </div>
-
-          <button
-            onClick={() => {
-              logout();
-              router.push("/login");
-            }}
-            className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm"
-          >
-            Log out
-          </button>
         </div>
 
         {/* Account Summary */}
@@ -95,5 +97,6 @@ export default function DashboardPage() {
 
       </div>
     </main>
+    </>
   );
 }
