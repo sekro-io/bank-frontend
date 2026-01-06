@@ -208,7 +208,7 @@ export default function LoanOffersPage() {
           <div className="mb-8">
             <button
               className="text-sm text-slate-400 hover:text-slate-200 mb-3"
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/dashboard")}
             >
               ← Back to Dashboard
             </button>

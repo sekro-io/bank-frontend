@@ -17,12 +17,46 @@ type Account = {
   created_at: string;
 };
 
+type Loan = {
+  id: string; // loan_application_id
+  requested_amount: number;
+  status: string;
+  created_at: string;
+
+  // optional fields for later
+  selected_offer?: {
+    term_months?: number;
+    apr?: number;
+    monthly_payment?: number;
+  } | null;
+};
+
 type User = {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
 };
+
+function loanStatusBadgeColor(status?: string) {
+  const s = (status || "").toUpperCase();
+
+  if (s.includes("FUNDED") || s.includes("OFFER_ACCEPTED"))
+    return "bg-emerald-500 text-slate-950";
+  if (s.includes("APPROVED") || s.includes("OFFERS_PRESENTED"))
+    return "bg-brand-aqua text-slate-950";
+  if (s.includes("REJECT") || s.includes("DECLINED"))
+    return "bg-red-500 text-white";
+  if (s.includes("PENDING") || s.includes("REVIEW"))
+    return "bg-yellow-400 text-slate-950";
+
+  return "bg-slate-700 text-slate-100";
+}
+
+function formatLoanStatus(status?: string) {
+  if (!status) return "—";
+  return status.replaceAll("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+}
 
 export default function DashboardPage() {
   const { isAuthenticated, loading, token } = useAuth();
@@ -33,6 +67,11 @@ export default function DashboardPage() {
 
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
+
+  // ✅ NEW: loans state
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loansLoading, setLoansLoading] = useState(false);
+  const [loansError, setLoansError] = useState<string | null>(null);
 
   // --- Create account modal state ---
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -84,6 +123,7 @@ export default function DashboardPage() {
     if (!loading && isAuthenticated && token) {
       fetchUser();
       fetchAccounts();
+      fetchLoans(); // ✅ NEW
     }
   }, [loading, isAuthenticated, token]);
 
@@ -122,6 +162,30 @@ export default function DashboardPage() {
     }
   }
 
+  // ✅ NEW: fetch loans
+  async function fetchLoans() {
+    setLoansLoading(true);
+    setLoansError(null);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/loans`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Failed to load loans");
+
+      setLoans(data.loans || []);
+    } catch (err: any) {
+      setLoansError(err?.message || "Failed to load loans");
+    } finally {
+      setLoansLoading(false);
+    }
+  }
+
   async function handleCreateAccount() {
     setCreateLoading(true);
     setCreateError(null);
@@ -149,7 +213,6 @@ export default function DashboardPage() {
       setNewAccountName("");
       setNewAccountType("checking");
 
-      // 🔄 Refresh accounts after eventual consistency delay
       setTimeout(fetchAccounts, 1000);
     } catch (err: any) {
       setCreateError(err.message || "Failed to create account");
@@ -181,7 +244,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (showLoanModal) {
       resetLoanModalState();
-      // Set default destination account if available
       if (accounts.length > 0) {
         setDestinationAccountId(accounts[0].id);
       }
@@ -363,6 +425,87 @@ export default function DashboardPage() {
               ))}
             </div>
           </section>
+
+          {/* ✅ NEW: Loans section */}
+          {!loansLoading && loans.length > 0 && (
+            <section className="mb-10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">
+                  {user ? `${user.firstName}’s Loans` : "Your Loans"}
+                </h2>
+              </div>
+
+              {loansError && (
+                <p className="text-red-400 text-sm mb-3">{loansError}</p>
+              )}
+
+              <div className="flex flex-col gap-4">
+                {loans.map((loan) => (
+                  <button
+                    key={loan.id}
+                    onClick={() => router.push(`/loans/${loan.id}`)}
+                    className="text-left bg-slate-900 border border-slate-800
+                               rounded-2xl p-6 flex justify-between items-center
+                               hover:border-brand-aqua hover:bg-slate-800
+                               transition"
+                  >
+                    <div>
+                      <p className="text-slate-400 text-sm">Loan Application</p>
+
+                      <p className="text-slate-100 font-semibold text-lg mt-1">
+                        {formatCurrency(Number(loan.requested_amount || 0))}
+                      </p>
+
+                      <p className="text-xs text-slate-500 mt-1">
+                        Applied:{" "}
+                        {loan.created_at
+                          ? new Date(loan.created_at).toLocaleDateString()
+                          : "—"}
+                      </p>
+
+                      <div className="mt-2">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${loanStatusBadgeColor(
+                            loan.status
+                          )}`}
+                        >
+                          {formatLoanStatus(loan.status)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Show quick details if offer exists */}
+                    {loan.selected_offer ? (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Monthly</p>
+                        <p className="text-lg font-semibold">
+                          {loan.selected_offer.monthly_payment
+                            ? formatCurrency(Number(loan.selected_offer.monthly_payment))
+                            : "—"}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {loan.selected_offer.apr
+                            ? `${Number(loan.selected_offer.apr).toFixed(2)}% APR`
+                            : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-right text-xs text-slate-600">
+                        View details →
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {loansLoading && (
+            <div className="text-slate-400 flex items-center gap-2 mb-10">
+              <Spinner />
+              Loading loans…
+            </div>
+          )}
         </div>
       </main>
 
@@ -384,9 +527,7 @@ export default function DashboardPage() {
               <option value="savings">Savings</option>
             </select>
 
-            <label className="block text-sm mb-1">
-              Account Name (optional)
-            </label>
+            <label className="block text-sm mb-1">Account Name (optional)</label>
             <input
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-4"
               placeholder="e.g. Emergency Fund"
