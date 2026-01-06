@@ -86,6 +86,15 @@ export default function HomePage() {
                 </Link>
               </>
             )}
+
+            {/* ✅ New: Employee entry point in hero actions */}
+            <Link
+              href="/admin/login"
+              className="rounded-full border border-slate-700 px-6 py-3 text-sm font-semibold hover:bg-slate-900 transition"
+            >
+              Employee Portal
+            </Link>
+            
           </div>
 
           <p className="text-xs text-slate-400 mt-10 max-w-xl">

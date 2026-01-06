@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "./Spinner";
+import InboxDropdown from "./InboxDropdown"; // ✅ ADD THIS
 import { formatCurrency, parseCurrency } from "@/utils/money";
 
 type Account = {
@@ -202,6 +203,9 @@ export default function TopNav() {
           {/* Actions */}
           {token ? (
             <div className="flex items-center gap-3">
+              {/* ✅ NEW: Inbox dropdown */}
+              <InboxDropdown />
+
               <button
                 onClick={() => setTransferOpen(true)}
                 className={`rounded-full px-4 py-1.5 text-sm font-semibold transition transform ${pressyPrimary}`}

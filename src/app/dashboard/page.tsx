@@ -2,8 +2,10 @@
 
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TopNav from "../components/TopNav";
+import Spinner from "../components/Spinner";
+import { formatCurrency, parseCurrency } from "@/utils/money";
 
 type Account = {
   id: string;
@@ -39,6 +41,36 @@ export default function DashboardPage() {
   const [newAccountName, setNewAccountName] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // --- Loan apply modal state ---
+  const [showLoanModal, setShowLoanModal] = useState(false);
+
+  const [requestedAmountInput, setRequestedAmountInput] = useState("");
+  const [requestedAmountValue, setRequestedAmountValue] = useState<number | null>(
+    null
+  );
+
+  const [declaredIncomeInput, setDeclaredIncomeInput] = useState("");
+  const [declaredIncomeValue, setDeclaredIncomeValue] = useState<number | null>(
+    null
+  );
+
+  const [declaredDebtInput, setDeclaredDebtInput] = useState("");
+  const [declaredDebtValue, setDeclaredDebtValue] = useState<number | null>(0);
+
+  const [employmentStatus, setEmploymentStatus] = useState<
+    "FULL_TIME" | "PART_TIME" | "SELF_EMPLOYED" | "UNEMPLOYED" | "STUDENT" | "RETIRED"
+  >("FULL_TIME");
+
+  const [purpose, setPurpose] = useState<
+    "DEBT_CONSOLIDATION" | "HOME_IMPROVEMENT" | "AUTO" | "MEDICAL" | "EDUCATION" | "VACATION" | "OTHER"
+  >("DEBT_CONSOLIDATION");
+
+  const [destinationAccountId, setDestinationAccountId] = useState("");
+
+  const [loanSubmitting, setLoanSubmitting] = useState(false);
+  const [loanError, setLoanError] = useState<string | null>(null);
+  const [loanSuccess, setLoanSuccess] = useState<string | null>(null);
 
   // --- Auth guard ---
   useEffect(() => {
@@ -126,6 +158,114 @@ export default function DashboardPage() {
     }
   }
 
+  // -----------------------
+  // Loan apply helpers
+  // -----------------------
+  const destinationAccountOptions = useMemo(() => accounts, [accounts]);
+
+  function resetLoanModalState() {
+    setRequestedAmountInput("");
+    setRequestedAmountValue(null);
+    setDeclaredIncomeInput("");
+    setDeclaredIncomeValue(null);
+    setDeclaredDebtInput("");
+    setDeclaredDebtValue(0);
+    setEmploymentStatus("FULL_TIME");
+    setPurpose("DEBT_CONSOLIDATION");
+    setDestinationAccountId("");
+    setLoanError(null);
+    setLoanSuccess(null);
+    setLoanSubmitting(false);
+  }
+
+  useEffect(() => {
+    if (showLoanModal) {
+      resetLoanModalState();
+      // Set default destination account if available
+      if (accounts.length > 0) {
+        setDestinationAccountId(accounts[0].id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLoanModal]);
+
+  async function handleApplyForLoan() {
+    setLoanError(null);
+    setLoanSuccess(null);
+
+    if (!destinationAccountId) {
+      setLoanError("Please select a destination account.");
+      return;
+    }
+    if (!requestedAmountValue || requestedAmountValue <= 0) {
+      setLoanError("Please enter a valid requested amount.");
+      return;
+    }
+    if (!declaredIncomeValue || declaredIncomeValue <= 0) {
+      setLoanError("Please enter a valid declared income.");
+      return;
+    }
+    if (declaredDebtValue === null || declaredDebtValue < 0) {
+      setLoanError("Declared debt cannot be negative.");
+      return;
+    }
+
+    setLoanSubmitting(true);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/loan/apply`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            requested_amount: requestedAmountValue,
+            declared_income: declaredIncomeValue,
+            declared_debt: declaredDebtValue ?? 0,
+            employment_status: employmentStatus,
+            purpose: purpose,
+            destination_account_id: destinationAccountId,
+          }),
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to submit loan application");
+      }
+
+      setLoanSuccess(
+        "Application submitted! We’ll notify you in your inbox once it’s reviewed."
+      );
+
+      setTimeout(() => {
+        setShowLoanModal(false);
+        resetLoanModalState();
+        window.location.reload();
+      }, 1200);
+    } catch (err: any) {
+      setLoanError(err?.message || "Failed to submit loan application");
+    } finally {
+      setLoanSubmitting(false);
+    }
+  }
+
+  const canSubmitLoan =
+    !loanSubmitting &&
+    !accountsLoading &&
+    accounts.length > 0 &&
+    destinationAccountId &&
+    requestedAmountValue !== null &&
+    requestedAmountValue > 0 &&
+    declaredIncomeValue !== null &&
+    declaredIncomeValue > 0 &&
+    declaredDebtValue !== null &&
+    declaredDebtValue >= 0;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
@@ -142,7 +282,6 @@ export default function DashboardPage() {
 
       <main className="min-h-screen bg-slate-950 text-slate-50 p-8">
         <div className="max-w-4xl mx-auto">
-
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
@@ -160,12 +299,21 @@ export default function DashboardPage() {
                 {user ? `${user.firstName}’s Accounts` : "Your Accounts"}
               </h2>
 
-              <button
-                className="bg-brand-aqua text-slate-950 font-semibold px-4 py-2 rounded-lg hover:bg-brand-purple transition"
-                onClick={() => setShowCreateModal(true)}
-              >
-                + Open New Account
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  className="bg-slate-800 text-slate-50 font-semibold px-4 py-2 rounded-lg hover:bg-slate-700 transition border border-slate-700"
+                  onClick={() => setShowLoanModal(true)}
+                >
+                  Apply for a Loan
+                </button>
+
+                <button
+                  className="bg-brand-aqua text-slate-950 font-semibold px-4 py-2 rounded-lg hover:bg-brand-purple transition"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  + Open New Account
+                </button>
+              </div>
             </div>
 
             {accountsLoading && (
@@ -222,9 +370,7 @@ export default function DashboardPage() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">
-              Open New Account
-            </h3>
+            <h3 className="text-xl font-semibold mb-4">Open New Account</h3>
 
             <label className="block text-sm mb-1">Account Type</label>
             <select
@@ -267,6 +413,186 @@ export default function DashboardPage() {
                 disabled={createLoading}
               >
                 {createLoading ? "Creating…" : "Create Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loan Application Modal */}
+      {showLoanModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Apply for a Loan</h3>
+
+            {accountsLoading && (
+              <p className="text-slate-400 text-sm mb-3">Loading accounts…</p>
+            )}
+
+            {!accountsLoading && destinationAccountOptions.length === 0 && (
+              <p className="text-slate-400 text-sm mb-3">
+                You need at least one account to apply for a loan.
+              </p>
+            )}
+
+            {!accountsLoading && destinationAccountOptions.length > 0 && (
+              <>
+                <label className="block text-sm mb-1">Destination Account</label>
+                <select
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={destinationAccountId}
+                  onChange={(e) => setDestinationAccountId(e.target.value)}
+                  disabled={loanSubmitting}
+                >
+                  {destinationAccountOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.account_name} • ****{a.account_number?.slice(-4)} •{" "}
+                      {formatCurrency(Number(a.available_balance))}
+                    </option>
+                  ))}
+                </select>
+
+                <label className="block text-sm mb-1">Purpose</label>
+                <select
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={purpose}
+                  onChange={(e) =>
+                    setPurpose(
+                      e.target.value as
+                        | "DEBT_CONSOLIDATION"
+                        | "HOME_IMPROVEMENT"
+                        | "AUTO"
+                        | "MEDICAL"
+                        | "EDUCATION"
+                        | "VACATION"
+                        | "OTHER"
+                    )
+                  }
+                  disabled={loanSubmitting}
+                >
+                  <option value="DEBT_CONSOLIDATION">Debt Consolidation</option>
+                  <option value="HOME_IMPROVEMENT">Home Improvement</option>
+                  <option value="AUTO">Auto</option>
+                  <option value="MEDICAL">Medical</option>
+                  <option value="EDUCATION">Education</option>
+                  <option value="VACATION">Vacation</option>
+                  <option value="OTHER">Other</option>
+                </select>
+
+                <label className="block text-sm mb-1">Employment Status</label>
+                <select
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={employmentStatus}
+                  onChange={(e) =>
+                    setEmploymentStatus(
+                      e.target.value as
+                        | "FULL_TIME"
+                        | "PART_TIME"
+                        | "SELF_EMPLOYED"
+                        | "UNEMPLOYED"
+                        | "STUDENT"
+                        | "RETIRED"
+                    )
+                  }
+                  disabled={loanSubmitting}
+                >
+                  <option value="FULL_TIME">Full-time</option>
+                  <option value="PART_TIME">Part-time</option>
+                  <option value="SELF_EMPLOYED">Self-employed</option>
+                  <option value="UNEMPLOYED">Unemployed</option>
+                  <option value="STUDENT">Student</option>
+                  <option value="RETIRED">Retired</option>
+                </select>
+
+                <label className="block text-sm mb-1">Requested Amount</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="$0.00"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={requestedAmountInput}
+                  onChange={(e) => {
+                    setRequestedAmountInput(e.target.value);
+                    const numeric = parseCurrency(e.target.value);
+                    setRequestedAmountValue(isNaN(numeric) ? null : numeric);
+                  }}
+                  onBlur={() => {
+                    if (requestedAmountValue !== null) {
+                      setRequestedAmountInput(formatCurrency(requestedAmountValue));
+                    }
+                  }}
+                  disabled={loanSubmitting}
+                />
+
+                <label className="block text-sm mb-1">Declared Income</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="$0.00"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={declaredIncomeInput}
+                  onChange={(e) => {
+                    setDeclaredIncomeInput(e.target.value);
+                    const numeric = parseCurrency(e.target.value);
+                    setDeclaredIncomeValue(isNaN(numeric) ? null : numeric);
+                  }}
+                  onBlur={() => {
+                    if (declaredIncomeValue !== null) {
+                      setDeclaredIncomeInput(formatCurrency(declaredIncomeValue));
+                    }
+                  }}
+                  disabled={loanSubmitting}
+                />
+
+                <label className="block text-sm mb-1">Declared Debt (optional)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="$0.00"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 mb-3"
+                  value={declaredDebtInput}
+                  onChange={(e) => {
+                    setDeclaredDebtInput(e.target.value);
+                    const numeric = parseCurrency(e.target.value);
+                    setDeclaredDebtValue(isNaN(numeric) ? null : numeric);
+                  }}
+                  onBlur={() => {
+                    if (declaredDebtValue !== null) {
+                      setDeclaredDebtInput(formatCurrency(declaredDebtValue));
+                    }
+                  }}
+                  disabled={loanSubmitting}
+                />
+              </>
+            )}
+
+            {loanError && (
+              <p className="text-red-400 text-sm mb-3">{loanError}</p>
+            )}
+
+            {loanSuccess && (
+              <p className="text-emerald-400 text-sm mb-3">{loanSuccess}</p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 text-slate-400 hover:text-slate-200"
+                onClick={() => {
+                  setShowLoanModal(false);
+                  resetLoanModalState();
+                }}
+                disabled={loanSubmitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="bg-brand-aqua text-slate-950 font-semibold px-4 py-2 rounded-lg hover:bg-brand-purple transition flex items-center gap-2"
+                onClick={handleApplyForLoan}
+                disabled={!canSubmitLoan}
+              >
+                {loanSubmitting && <Spinner />}
+                {loanSubmitting ? "Submitting…" : "Apply"}
               </button>
             </div>
           </div>
