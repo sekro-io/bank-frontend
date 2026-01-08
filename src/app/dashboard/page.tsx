@@ -17,18 +17,32 @@ type Account = {
   created_at: string;
 };
 
-type Loan = {
+type LoanApplication = {
   id: string; // loan_application_id
   requested_amount: number;
   status: string;
+  purpose?: string;
   created_at: string;
 
-  // optional fields for later
   selected_offer?: {
     term_months?: number;
     apr?: number;
     monthly_payment?: number;
   } | null;
+
+  decision_reason?: string | null;
+};
+
+type LoanAccount = {
+  id: string; // loan_id
+  loan_application_id: string;
+  principal_amount: number;
+  outstanding_balance: number;
+  term_months?: number | null;
+  interest_rate?: number | null;
+  monthly_payment?: number | null;
+  status: string;
+  created_at: string;
 };
 
 type User = {
@@ -41,7 +55,7 @@ type User = {
 function loanStatusBadgeColor(status?: string) {
   const s = (status || "").toUpperCase();
 
-  if (s.includes("FUNDED") || s.includes("OFFER_ACCEPTED"))
+  if (s.includes("ACTIVE") || s.includes("FUNDED"))
     return "bg-emerald-500 text-slate-950";
   if (s.includes("APPROVED") || s.includes("OFFERS_PRESENTED"))
     return "bg-brand-aqua text-slate-950";
@@ -55,7 +69,10 @@ function loanStatusBadgeColor(status?: string) {
 
 function formatLoanStatus(status?: string) {
   if (!status) return "—";
-  return status.replaceAll("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+  return status
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 export default function DashboardPage() {
@@ -68,10 +85,17 @@ export default function DashboardPage() {
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
 
-  // ✅ NEW: loans state
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [loansLoading, setLoansLoading] = useState(false);
-  const [loansError, setLoansError] = useState<string | null>(null);
+  // loan applications state
+  const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([]);
+  const [loanApplicationsLoading, setLoanApplicationsLoading] = useState(false);
+  const [loanApplicationsError, setLoanApplicationsError] = useState<string | null>(
+    null
+  );
+
+  // loan accounts state
+  const [loanAccounts, setLoanAccounts] = useState<LoanAccount[]>([]);
+  const [loanAccountsLoading, setLoanAccountsLoading] = useState(false);
+  const [loanAccountsError, setLoanAccountsError] = useState<string | null>(null);
 
   // --- Create account modal state ---
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -101,8 +125,16 @@ export default function DashboardPage() {
     "FULL_TIME" | "PART_TIME" | "SELF_EMPLOYED" | "UNEMPLOYED" | "STUDENT" | "RETIRED"
   >("FULL_TIME");
 
+  // Align to backend allowedPurposes
   const [purpose, setPurpose] = useState<
-    "DEBT_CONSOLIDATION" | "HOME_IMPROVEMENT" | "AUTO" | "MEDICAL" | "EDUCATION" | "VACATION" | "OTHER"
+    | "DEBT_CONSOLIDATION"
+    | "HOME_IMPROVEMENT"
+    | "AUTO"
+    | "MEDICAL"
+    | "EDUCATION"
+    | "BUSINESS"
+    | "PERSONAL"
+    | "OTHER"
   >("DEBT_CONSOLIDATION");
 
   const [destinationAccountId, setDestinationAccountId] = useState("");
@@ -123,19 +155,18 @@ export default function DashboardPage() {
     if (!loading && isAuthenticated && token) {
       fetchUser();
       fetchAccounts();
-      fetchLoans(); // ✅ NEW
+      fetchLoanApplications();
+      fetchLoanAccounts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, isAuthenticated, token]);
 
   async function fetchUser() {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/user`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/user`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.ok) setUser(data.user);
   }
 
@@ -151,7 +182,7 @@ export default function DashboardPage() {
         }
       );
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message);
 
       setAccounts(data.accounts || []);
@@ -162,27 +193,49 @@ export default function DashboardPage() {
     }
   }
 
-  // ✅ NEW: fetch loans
-  async function fetchLoans() {
-    setLoansLoading(true);
-    setLoansError(null);
+  // fetch loan applications
+  async function fetchLoanApplications() {
+    setLoanApplicationsLoading(true);
+    setLoanApplicationsError(null);
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/loans`,
+        `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/loan-application`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.message || "Failed to load loan applications");
+
+      setLoanApplications(data.loan_applications || []);
+    } catch (err: any) {
+      setLoanApplicationsError(err?.message || "Failed to load loan applications");
+    } finally {
+      setLoanApplicationsLoading(false);
+    }
+  }
+
+  // fetch loan accounts
+  async function fetchLoanAccounts() {
+    setLoanAccountsLoading(true);
+    setLoanAccountsError(null);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/loans`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to load loans");
 
-      setLoans(data.loans || []);
+      setLoanAccounts(data.loans || []);
     } catch (err: any) {
-      setLoansError(err?.message || "Failed to load loans");
+      setLoanAccountsError(err?.message || "Failed to load loans");
     } finally {
-      setLoansLoading(false);
+      setLoanAccountsLoading(false);
     }
   }
 
@@ -206,7 +259,7 @@ export default function DashboardPage() {
         }
       );
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message);
 
       setShowCreateModal(false);
@@ -248,7 +301,7 @@ export default function DashboardPage() {
         setDestinationAccountId(accounts[0].id);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [showLoanModal]);
 
   async function handleApplyForLoan() {
@@ -307,7 +360,7 @@ export default function DashboardPage() {
       setTimeout(() => {
         setShowLoanModal(false);
         resetLoanModalState();
-        window.location.reload();
+        fetchLoanApplications();
       }, 1200);
     } catch (err: any) {
       setLoanError(err?.message || "Failed to submit loan application");
@@ -349,9 +402,7 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold">
               Welcome back{user ? `, ${user.firstName}` : ""}
             </h1>
-            <p className="text-slate-400 mt-1">
-              Here’s a snapshot of your accounts
-            </p>
+            <p className="text-slate-400 mt-1">Here’s a snapshot of your accounts</p>
           </div>
 
           {/* Accounts */}
@@ -378,13 +429,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {accountsLoading && (
-              <p className="text-slate-400">Loading accounts…</p>
-            )}
+            {accountsLoading && <p className="text-slate-400">Loading accounts…</p>}
 
-            {accountsError && (
-              <p className="text-red-400 text-sm">{accountsError}</p>
-            )}
+            {accountsError && <p className="text-red-400 text-sm">{accountsError}</p>}
 
             {!accountsLoading && accounts.length === 0 && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-400">
@@ -403,9 +450,7 @@ export default function DashboardPage() {
                              transition"
                 >
                   <div>
-                    <p className="text-slate-400 text-sm">
-                      {account.account_name}
-                    </p>
+                    <p className="text-slate-400 text-sm">{account.account_name}</p>
                     <p className="text-xs text-slate-500 mt-1 capitalize">
                       {account.account_type} • {account.status}
                     </p>
@@ -426,21 +471,21 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* ✅ NEW: Loans section */}
-          {!loansLoading && loans.length > 0 && (
+          {/* Loan Accounts Section (only render if user has loans) */}
+          {!loanAccountsLoading && loanAccounts.length > 0 && (
             <section className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">
-                  {user ? `${user.firstName}’s Loans` : "Your Loans"}
+                  {user ? `${user.firstName}’s Loan Accounts` : "Your Loan Accounts"}
                 </h2>
               </div>
 
-              {loansError && (
-                <p className="text-red-400 text-sm mb-3">{loansError}</p>
+              {loanAccountsError && (
+                <p className="text-red-400 text-sm mb-3">{loanAccountsError}</p>
               )}
 
               <div className="flex flex-col gap-4">
-                {loans.map((loan) => (
+                {loanAccounts.map((loan) => (
                   <button
                     key={loan.id}
                     onClick={() => router.push(`/loans/${loan.id}`)}
@@ -450,14 +495,14 @@ export default function DashboardPage() {
                                transition"
                   >
                     <div>
-                      <p className="text-slate-400 text-sm">Loan Application</p>
+                      <p className="text-slate-400 text-sm">Loan Account</p>
 
                       <p className="text-slate-100 font-semibold text-lg mt-1">
-                        {formatCurrency(Number(loan.requested_amount || 0))}
+                        Balance: {formatCurrency(Number(loan.outstanding_balance || 0))}
                       </p>
 
                       <p className="text-xs text-slate-500 mt-1">
-                        Applied:{" "}
+                        Opened:{" "}
                         {loan.created_at
                           ? new Date(loan.created_at).toLocaleDateString()
                           : "—"}
@@ -474,37 +519,117 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Show quick details if offer exists */}
-                    {loan.selected_offer ? (
-                      <div className="text-right">
-                        <p className="text-xs text-slate-500">Monthly</p>
-                        <p className="text-lg font-semibold">
-                          {loan.selected_offer.monthly_payment
-                            ? formatCurrency(Number(loan.selected_offer.monthly_payment))
-                            : "—"}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {loan.selected_offer.apr
-                            ? `${Number(loan.selected_offer.apr).toFixed(2)}% APR`
-                            : ""}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-right text-xs text-slate-600">
-                        View details →
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Monthly Payment</p>
+                      <p className="text-lg font-semibold">
+                        {loan.monthly_payment
+                          ? formatCurrency(Number(loan.monthly_payment))
+                          : "—"}
+                      </p>
+
+                      <p className="text-xs text-slate-500 mt-1">
+                        {loan.interest_rate !== null && loan.interest_rate !== undefined
+                          ? `${Number(loan.interest_rate).toFixed(2)}% APR`
+                          : ""}
+                      </p>
+                    </div>
                   </button>
                 ))}
               </div>
             </section>
           )}
 
-          {loansLoading && (
+          {loanAccountsLoading && (
             <div className="text-slate-400 flex items-center gap-2 mb-10">
               <Spinner />
               Loading loans…
             </div>
+          )}
+
+          {/* Loan Applications Section (only render if there is data, loading, or error) */}
+          {(loanApplicationsLoading || loanApplicationsError || loanApplications.length > 0) && (
+            <section className="mb-10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">
+                  {user
+                    ? `${user.firstName}’s Loan Applications`
+                    : "Your Loan Applications"}
+                </h2>
+              </div>
+
+              {loanApplicationsLoading && (
+                <div className="text-slate-400 flex items-center gap-2 mb-3">
+                  <Spinner />
+                  Loading loan applications…
+                </div>
+              )}
+
+              {loanApplicationsError && (
+                <p className="text-red-400 text-sm mb-3">{loanApplicationsError}</p>
+              )}
+
+              {/* Only render list if we actually have applications */}
+              {!loanApplicationsLoading && !loanApplicationsError && loanApplications.length > 0 && (
+                <div className="flex flex-col gap-4">
+                  {loanApplications.map((app) => (
+                    <button
+                      key={app.id}
+                      onClick={() => router.push(`/loan-application/${app.id}`)}
+                      className="text-left bg-slate-900 border border-slate-800
+                                rounded-2xl p-6 flex justify-between items-center
+                                hover:border-brand-aqua hover:bg-slate-800
+                                transition"
+                    >
+                      <div>
+                        <p className="text-slate-400 text-sm">Loan Application</p>
+
+                        <p className="text-slate-100 font-semibold text-lg mt-1">
+                          {formatCurrency(Number(app.requested_amount || 0))}
+                        </p>
+
+                        <p className="text-xs text-slate-500 mt-1">
+                          Submitted:{" "}
+                          {app.created_at
+                            ? new Date(app.created_at).toLocaleDateString()
+                            : "—"}
+                        </p>
+
+                        <div className="mt-2">
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${loanStatusBadgeColor(
+                              app.status
+                            )}`}
+                          >
+                            {formatLoanStatus(app.status)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Show quick details if offer exists */}
+                      {app.selected_offer ? (
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500">Monthly</p>
+                          <p className="text-lg font-semibold">
+                            {app.selected_offer.monthly_payment
+                              ? formatCurrency(Number(app.selected_offer.monthly_payment))
+                              : "—"}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {app.selected_offer.apr
+                              ? `${Number(app.selected_offer.apr).toFixed(2)}% APR`
+                              : ""}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-right text-xs text-slate-600">
+                          View details →
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
         </div>
       </main>
@@ -605,7 +730,8 @@ export default function DashboardPage() {
                         | "AUTO"
                         | "MEDICAL"
                         | "EDUCATION"
-                        | "VACATION"
+                        | "BUSINESS"
+                        | "PERSONAL"
                         | "OTHER"
                     )
                   }
@@ -616,7 +742,8 @@ export default function DashboardPage() {
                   <option value="AUTO">Auto</option>
                   <option value="MEDICAL">Medical</option>
                   <option value="EDUCATION">Education</option>
-                  <option value="VACATION">Vacation</option>
+                  <option value="BUSINESS">Business</option>
+                  <option value="PERSONAL">Personal</option>
                   <option value="OTHER">Other</option>
                 </select>
 

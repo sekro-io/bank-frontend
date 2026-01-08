@@ -184,17 +184,7 @@ export default function AdminDock() {
                   </div>
                 </Section>
 
-                <Section title="Admin Inbox">
-                  <p className="text-sm text-slate-400">
-                    Loan officer tasks will show here later.
-                  </p>
-                  <button
-                    disabled
-                    className="mt-3 w-full bg-slate-800 text-slate-400 border border-slate-700 rounded-lg px-4 py-2 cursor-not-allowed"
-                  >
-                    Load tasks (coming soon)
-                  </button>
-                </Section>
+                
               </div>
             )}
           </div>
