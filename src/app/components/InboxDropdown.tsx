@@ -100,8 +100,8 @@ export default function InboxDropdown() {
     }
   }
 
-  // ✅ Poll every 5 seconds (only while tab visible)
-  // ✅ Silent refresh: does NOT flip UI into loading state
+  // Poll every 5 seconds (only while tab visible)
+  // Silent refresh: does NOT flip UI into loading state
   useEffect(() => {
     if (!token) return;
 

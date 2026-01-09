@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import TopNav from "../../components/TopNav";
 import Spinner from "../../components/Spinner";
 import { formatCurrency, parseCurrency } from "@/utils/money";
+import { formatLocalDateTime } from "@/utils/time";
 
 type Account = {
   id: string;
@@ -254,19 +255,19 @@ export default function AccountPage() {
 
   const txRows = useMemo(() => transactions ?? [], [transactions]);
 
-  function prettyDate(iso: string) {
-    try {
-      return new Date(iso).toLocaleString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return iso;
-    }
-  }
+//   function prettyDate(iso: string) {
+//     try {
+//       return new Date(iso).toLocaleString(undefined, {
+//         year: "numeric",
+//         month: "short",
+//         day: "2-digit",
+//         hour: "2-digit",
+//         minute: "2-digit",
+//       });
+//     } catch {
+//       return iso;
+//     }
+//   }
 
   function txLabel(t: Transaction) {
     const type = (t.transaction_type || "").toLowerCase();
@@ -434,7 +435,8 @@ export default function AccountPage() {
                           </div>
 
                           <div className="md:col-span-2 md:text-right mt-2 md:mt-0 text-xs text-slate-400">
-                            {prettyDate(t.posted_at || t.created_at)}
+                            {formatLocalDateTime(t.posted_at || t.created_at)}
+                             {/* {prettyDate(t.posted_at || t.created_at)} */}
                           </div>
                         </div>
                       </li>

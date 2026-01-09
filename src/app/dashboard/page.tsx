@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import TopNav from "../components/TopNav";
 import Spinner from "../components/Spinner";
 import { formatCurrency, parseCurrency } from "@/utils/money";
+import { formatLocalDateTime, formatLocalDate } from "@/utils/time";
 
 type Account = {
   id: string;
@@ -502,10 +503,7 @@ export default function DashboardPage() {
                       </p>
 
                       <p className="text-xs text-slate-500 mt-1">
-                        Opened:{" "}
-                        {loan.created_at
-                          ? new Date(loan.created_at).toLocaleDateString()
-                          : "—"}
+                        Opened: {formatLocalDate(loan.created_at)}
                       </p>
 
                       <div className="mt-2">
@@ -588,10 +586,7 @@ export default function DashboardPage() {
                         </p>
 
                         <p className="text-xs text-slate-500 mt-1">
-                          Submitted:{" "}
-                          {app.created_at
-                            ? new Date(app.created_at).toLocaleDateString()
-                            : "—"}
+                          Submitted: {formatLocalDate(app.created_at)}
                         </p>
 
                         <div className="mt-2">

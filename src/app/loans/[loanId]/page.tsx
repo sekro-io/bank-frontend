@@ -6,6 +6,7 @@ import TopNav from "@/app/components/TopNav";
 import Spinner from "@/app/components/Spinner";
 import { useAuth } from "@/app/context/AuthContext";
 import { formatCurrency, parseCurrency } from "@/utils/money";
+import { formatLocalDateTime, formatLocalDate } from "@/utils/time";
 
 type LoanAccount = {
   id: string;
@@ -86,12 +87,12 @@ function badgeColor(status?: string) {
 
 function formatNextRun(ts?: number) {
   if (!ts) return "—";
-  return new Date(ts).toLocaleString(undefined, {
+
+  return new Date(ts).toLocaleDateString(undefined, {
+    timeZone: "America/Los_Angeles", // bank timezone (schedule timezone)
     month: "short",
     day: "numeric",
     year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
@@ -123,12 +124,12 @@ export default function LoanAccountDetailsPage() {
   const [loanLoading, setLoanLoading] = useState(false);
   const [loanError, setLoanError] = useState<string | null>(null);
 
-  // ✅ Shared account loading state (used for both modals)
+  //Shared account loading state (used for both modals)
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
 
-  // ✅ Payment modal state
+  //Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAccountId, setPaymentAccountId] = useState("");
   const [paymentAmountInput, setPaymentAmountInput] = useState("");
@@ -139,12 +140,12 @@ export default function LoanAccountDetailsPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
-  // ✅ Loan transaction history state
+  // Loan transaction history state
   const [loanTxns, setLoanTxns] = useState<LoanTransaction[]>([]);
   const [loanTxnsLoading, setLoanTxnsLoading] = useState(false);
   const [loanTxnsError, setLoanTxnsError] = useState<string | null>(null);
 
-  // ✅ Autopay schedule state
+  // Autopay schedule state
   const [autopay, setAutopay] = useState<AutopaySchedule | null>(null);
   const [autopayFound, setAutopayFound] = useState(false);
   const [autopayLoading, setAutopayLoading] = useState(false);
@@ -155,7 +156,7 @@ export default function LoanAccountDetailsPage() {
     string | null
   >(null);
 
-  // ✅ AutoPay modal state
+  // AutoPay modal state
   const [showAutopayModal, setShowAutopayModal] = useState(false);
   const [autopayAccountId, setAutopayAccountId] = useState("");
   const [autopayAmountInput, setAutopayAmountInput] = useState("");
@@ -167,14 +168,14 @@ export default function LoanAccountDetailsPage() {
   const [autopayError, setAutopayError] = useState<string | null>(null);
   const [autopaySuccess, setAutopaySuccess] = useState<string | null>(null);
 
-  // ✅ auth guard
+  // auth guard
   useEffect(() => {
     if (!loading && !token) {
       router.push("/login");
     }
   }, [loading, token, router]);
 
-  // ✅ fetch loan + autopay + loan txns
+  // fetch loan + autopay + loan txns
   useEffect(() => {
     if (!token || !loanId) return;
     fetchLoan();
@@ -259,7 +260,7 @@ export default function LoanAccountDetailsPage() {
     }
   }
 
-  // ✅ fetch accounts when either modal opens
+  // fetch accounts when either modal opens
   useEffect(() => {
     if ((!showPaymentModal && !showAutopayModal) || !token) return;
     fetchAccounts();
@@ -300,7 +301,7 @@ export default function LoanAccountDetailsPage() {
 
   const monthlyPayment = loan?.monthly_payment ?? null;
 
-  // ✅ payment modal defaults
+  // payment modal defaults
   useEffect(() => {
     if (!showPaymentModal) return;
 
@@ -317,7 +318,7 @@ export default function LoanAccountDetailsPage() {
     }
   }, [showPaymentModal, monthlyPayment]);
 
-  // ✅ autopay modal defaults
+  // autopay modal defaults
   useEffect(() => {
     if (!showAutopayModal) return;
 
@@ -656,7 +657,7 @@ export default function LoanAccountDetailsPage() {
                 </div>
               </div>
 
-              {/* ✅ ONLY render AutoPay card when schedule exists */}
+              {/* ONLY render AutoPay card when schedule exists */}
               {autopayFound && autopay && (
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                   <div className="flex justify-between items-start gap-4">
@@ -811,10 +812,9 @@ export default function LoanAccountDetailsPage() {
                       </thead>
                       <tbody>
                         {loanTxns.map((t) => {
-                          const date =
-                            t.posted_at || t.created_at
-                              ? new Date(t.posted_at || t.created_at || "").toLocaleString()
-                              : "—";
+                          console.log("posted at: ", t.posted_at);
+                          const date = formatLocalDateTime(t.posted_at || t.created_at);
+                          console.log("date: ", date);
 
                           return (
                             <tr
