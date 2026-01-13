@@ -65,36 +65,41 @@ export default function AccountPage() {
 
   const anySubmitting = depositSubmitting || withdrawSubmitting;
 
+  // Re-fetch when token becomes available OR when navigating between accounts
   useEffect(() => {
-    fetchAccounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Re-fetch when navigating between accounts
-  useEffect(() => {
-    if (!accountId) return;
+    if (!token || !accountId) return;
     fetchAccounts();
     fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId]);
+  }, [token, accountId]);
 
   async function fetchAccounts() {
     if (!token) return;
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/accounts`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SEKRO_BANK_API_URL}/accounts`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to fetch accounts");
       }
-    );
 
-    const data = await res.json();
-    const list = data.accounts || [];
+      const list = data.accounts || [];
 
-    setAccounts(list);
+      setAccounts(list);
 
-    const found = list.find((a: Account) => a.id === accountId);
-    setAccount(found || null);
+      const found = list.find((a: Account) => a.id === accountId);
+      setAccount(found || null);
+    } catch (e) {
+      console.error("fetchAccounts failed:", e);
+      setAccounts([]);
+      setAccount(null);
+    }
   }
 
   async function fetchTransactions() {
@@ -255,27 +260,55 @@ export default function AccountPage() {
 
   const txRows = useMemo(() => transactions ?? [], [transactions]);
 
-//   function prettyDate(iso: string) {
-//     try {
-//       return new Date(iso).toLocaleString(undefined, {
-//         year: "numeric",
-//         month: "short",
-//         day: "2-digit",
-//         hour: "2-digit",
-//         minute: "2-digit",
-//       });
-//     } catch {
-//       return iso;
-//     }
-//   }
+  //   function prettyDate(iso: string) {
+  //     try {
+  //       return new Date(iso).toLocaleString(undefined, {
+  //         year: "numeric",
+  //         month: "short",
+  //         day: "2-digit",
+  //         hour: "2-digit",
+  //         minute: "2-digit",
+  //       });
+  //     } catch {
+  //       return iso;
+  //     }
+  //   }
+
+  // function txLabel(t: Transaction) {
+  //   const type = (t.transaction_type || "").toLowerCase();
+  //   const dir = (t.direction || "").toLowerCase();
+
+  //   if (type === "deposit" || dir === "credit") return "Deposit";
+  //   if (type === "withdraw" || dir === "debit") return "Withdraw";
+  //   return t.transaction_type || "Transaction";
+  // }
 
   function txLabel(t: Transaction) {
-    const type = (t.transaction_type || "").toLowerCase();
+    const rawType = (t.transaction_type || "").trim();
+    const type = rawType.toLowerCase();
     const dir = (t.direction || "").toLowerCase();
 
-    if (type === "deposit" || dir === "credit") return "Deposit";
-    if (type === "withdraw" || dir === "debit") return "Withdraw";
-    return t.transaction_type || "Transaction";
+    // Prefer explicit type labels first
+    if (type === "external transfer" || type === "external_transfer") {
+      return "External Transfer";
+    }
+
+    if (type === "deposit") return "Deposit";
+    if (type === "withdraw") return "Withdraw";
+    if (type) {
+      // Title-case whatever else comes from backend
+      return rawType
+        .split(/[\s_]+/)
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+
+    // Fallback only if type is missing
+    if (dir === "credit") return "Deposit";
+    if (dir === "debit") return "Withdraw";
+
+    return "Transaction";
   }
 
   function statusPill(status: string) {
@@ -354,7 +387,10 @@ export default function AccountPage() {
 
               <button
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition transform ${pressySecondary}`}
-                onClick={fetchTransactions}
+                onClick={() => {
+                  fetchAccounts();
+                  fetchTransactions();
+                }}
                 disabled={txLoading}
               >
                 {txLoading ? "Refreshing…" : "Refresh"}
@@ -396,8 +432,7 @@ export default function AccountPage() {
                     const sign = isCredit ? "+" : "-";
 
                     const desc =
-                      (t.description && t.description.trim()) ||
-                      (isCredit ? "Deposit" : "Withdraw");
+                      (t.description && t.description.trim()) || txLabel(t);
 
                     return (
                       <li
@@ -428,7 +463,11 @@ export default function AccountPage() {
                           </div>
 
                           <div className="md:col-span-2 md:text-right mt-2 md:mt-0 font-semibold">
-                            <span className={isCredit ? "text-emerald-300" : "text-red-300"}>
+                            <span
+                              className={
+                                isCredit ? "text-emerald-300" : "text-red-300"
+                              }
+                            >
                               {sign}
                               {formatCurrency(Number(t.amount))}
                             </span>
@@ -436,7 +475,7 @@ export default function AccountPage() {
 
                           <div className="md:col-span-2 md:text-right mt-2 md:mt-0 text-xs text-slate-400">
                             {formatLocalDateTime(t.posted_at || t.created_at)}
-                             {/* {prettyDate(t.posted_at || t.created_at)} */}
+                            {/* {prettyDate(t.posted_at || t.created_at)} */}
                           </div>
                         </div>
                       </li>
