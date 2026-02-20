@@ -318,7 +318,7 @@ export default function TopNav() {
               SB
             </div>
             <span className="text-lg font-semibold text-slate-100">
-              Sekro Bank
+              Sekro Industries
             </span>
           </Link>
 

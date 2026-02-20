@@ -150,6 +150,12 @@ export default function InboxDropdown() {
     return copy;
   }, [messages]);
 
+  const pressyPrimary =
+    "bg-brand-aqua text-slate-950 border border-brand-aqua " +
+    "hover:bg-brand-purple hover:border-brand-purple " +
+    "active:translate-y-[1px] active:shadow-none " +
+    "shadow-[0_6px_0_rgba(0,0,0,0.35)]";
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Inbox Button */}
@@ -158,7 +164,8 @@ export default function InboxDropdown() {
           setOpen((v) => !v);
           if (!open) fetchInbox({ silent: true });
         }}
-        className="relative rounded-full border border-slate-700 px-4 py-1.5 text-sm hover:bg-slate-800 transition"
+        /* className="relative rounded-full border border-slate-700 px-4 py-1.5 text-sm hover:bg-slate-800 transition" */
+        className={`rounded-full px-4 py-1.5 text-sm font-semibold transition transform ${pressyPrimary}`}
       >
         Inbox
 
