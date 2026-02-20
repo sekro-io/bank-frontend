@@ -14,17 +14,17 @@ export default function HomePage() {
         <header className="flex items-center justify-between mb-24">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-full bg-brand-pink flex items-center justify-center text-slate-900 font-bold">
-              SB
+              SI
             </div>
             <span className="text-xl font-semibold tracking-tight">
-              Sekro Bank
+              Sekro Industries
             </span>
           </div>
 
           <nav className="flex items-center gap-4 text-sm">
             {isAuthenticated ? (
               <Link href="/dashboard" className="hover:underline">
-                Dashboard
+                Banking
               </Link>
             ) : (
               <>
@@ -45,18 +45,18 @@ export default function HomePage() {
         {/* Hero */}
         <section className="max-w-3xl">
           <p className="text-brand-pink text-sm font-semibold mb-3">
-            Demo banking platform
+            Demo platform
           </p>
 
           <h1 className="text-4xl md:text-5xl font-semibold leading-tight mb-6">
-            Modern digital banking,{" "}
+            Modern digital orchestration,{" "}
             <span className="text-brand-pink">
               powered by Orkes Conductor workflows.
             </span>
           </h1>
 
           <p className="text-slate-300 mb-8">
-            Sekro Bank is a fictional bank used to demonstrate Orkes Conductor
+            Sekro Industries is a fictional company used to demonstrate Orkes Conductor
             workflows end-to-end — including user onboarding, authentication,
             and loan approvals backed by real data flows.
           </p>
@@ -67,7 +67,7 @@ export default function HomePage() {
                 href="/dashboard"
                 className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
               >
-                Go to Dashboard
+                Banking
               </Link>
             ) : (
               <>

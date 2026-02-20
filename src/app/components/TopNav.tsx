@@ -315,10 +315,10 @@ export default function TopNav() {
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-full bg-brand-pink flex items-center justify-center text-slate-900 font-bold">
-              SB
+              SI
             </div>
             <span className="text-lg font-semibold text-slate-100">
-              Sekro Bank
+              Sekro Industries
             </span>
           </Link>
 
