@@ -2,7 +2,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, under the main root directory 'banking-frontend' add a file called '.env.local' and add the following and save
+```bash
+NEXT_PUBLIC_SEKRO_BANK_API_URL=https://7wqyjma2kc.execute-api.us-east-1.amazonaws.com
+```
+
+
+Second, run the development server:
 
 ```bash
 npm run dev
