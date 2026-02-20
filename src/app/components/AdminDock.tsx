@@ -97,18 +97,7 @@ export default function AdminDock() {
 
           {/* Content */}
           <div className="flex-1 overflow-auto px-5 py-4">
-            {!token && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                <h3 className="text-slate-100 font-semibold mb-2">
-                  You must be logged in
-                </h3>
-                <p className="text-sm text-slate-400">
-                  Admin tools require a user session so the demo can call the API.
-                </p>
-              </div>
-            )}
-
-            {token && !adminAuthed && (
+            {!adminAuthed && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
                 <h3 className="text-slate-100 font-semibold mb-3">
                   Admin Login
@@ -147,8 +136,20 @@ export default function AdminDock() {
               </div>
             )}
 
-            {token && adminAuthed && (
+            {adminAuthed && (
               <div className="space-y-4">
+                {!token && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                    <h3 className="text-slate-100 font-semibold mb-2">
+                      User session not detected
+                    </h3>
+                    <p className="text-sm text-slate-400">
+                      You can still view demo status here. Any API-driven admin actions
+                      will require a user session.
+                    </p>
+                  </div>
+                )}
+
                 <Section title="Monitoring">
                   <StatusRow label="Database (RDS)" status="unknown" />
                   <StatusRow label="Workers (ECS)" status="unknown" />
@@ -183,15 +184,13 @@ export default function AdminDock() {
                     </button>
                   </div>
                 </Section>
-
-                
               </div>
             )}
           </div>
 
           {/* Footer */}
           <div className="px-5 py-4 border-t border-slate-800 flex items-center justify-between">
-            {token && adminAuthed ? (
+            {adminAuthed ? (
               <>
                 <span className="text-xs text-slate-400">
                   Signed in as admin
@@ -243,7 +242,11 @@ function StatusRow({
       : "bg-slate-500";
 
   const text =
-    status === "online" ? "Online" : status === "offline" ? "Offline" : "Unknown";
+    status === "online"
+      ? "Online"
+      : status === "offline"
+      ? "Offline"
+      : "Unknown";
 
   return (
     <div className="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-2">
@@ -255,3 +258,4 @@ function StatusRow({
     </div>
   );
 }
+
