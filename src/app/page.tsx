@@ -63,12 +63,20 @@ export default function HomePage() {
 
           <div className="flex flex-wrap gap-4">
             {isAuthenticated ? (
-              <Link
-                href="/dashboard"
-                className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
-              >
-                Banking
-              </Link>
+              <>
+                <Link
+                  href="/dashboard"
+                  className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
+                >
+                  Banking
+                </Link>
+                <Link
+                  href="/generic-demo"
+                  className="rounded-full bg-brand-aqua px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-brand-purple transition"
+                >
+                  Another demo
+                </Link>
+              </>
             ) : (
               <>
                 <Link
