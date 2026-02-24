@@ -368,7 +368,7 @@ function HumanTasksView() {
                         }}
                       />
                     </th>
-                    {["Display Name", "State", "Workflow", "Assignee", "Definition", ""].map((h) => (
+                    {["Display Name", "State", "Workflow", "Assignee", ""].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
@@ -389,14 +389,14 @@ function HumanTasksView() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-white">{task.displayName}</div>
-                          <div className="text-xs text-slate-500 font-mono mt-0.5 truncate max-w-[180px]">{task.taskId}</div>
+                          {/* <div className="text-xs text-slate-500 font-mono mt-0.5 truncate max-w-[180px]">{task.taskId}</div> */}
                         </td>
                         <td className="px-4 py-3">
                           <StateBadge state={task.state} />
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-slate-300">{task.workflowName}</div>
-                          <div className="text-xs text-slate-500 font-mono mt-0.5 truncate max-w-[140px]">{task.workflowId}</div>
+                          {/* <div className="text-xs text-slate-500 font-mono mt-0.5 truncate max-w-[140px]">{task.workflowId}</div> */}
                         </td>
                         <td className="px-4 py-3 text-slate-400">
                           {task.assignee ? (
@@ -408,7 +408,7 @@ function HumanTasksView() {
                             <span className="text-slate-600">Unassigned</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs font-mono">{task.definitionName}</td>
+                        {/* <td className="px-4 py-3 text-slate-500 text-xs font-mono">{task.definitionName}</td> */}
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
