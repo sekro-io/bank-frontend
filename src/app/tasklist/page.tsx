@@ -33,6 +33,7 @@ interface HumanTask {
   createdBy: string;
   updatedBy: string;
   input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
   fullTemplate?: FormTemplate;
   humanTaskDef?: {
     fullTemplate?: FormTemplate;
@@ -294,13 +295,25 @@ function TaskFormPanel({
         // fullTemplate is nested under humanTaskDef, not at the top level
         const fullTemplate = data.humanTaskDef?.fullTemplate ?? null;
 
-        // Pre-fill values from task input (skipping internal __ fields)
+        // Build prefill: start from input (initial values set by workflow),
+        // then overlay output (values saved by a previous draft save).
+        // This ensures reopening a task after "Save draft" restores what was typed.
+        const skip = (k: string) => k.startsWith("__") || k === "_createdBy";
         const prefill: Record<string, unknown> = {};
+
         if (data.input) {
           for (const [k, v] of Object.entries(data.input)) {
-            if (!k.startsWith("__") && k !== "_createdBy") prefill[k] = v;
+            if (!skip(k)) prefill[k] = v;
           }
         }
+        // Overlay saved draft output on top so it takes precedence over input
+        const rawOutput = data.output;
+        if (rawOutput) {
+          for (const [k, v] of Object.entries(rawOutput)) {
+            if (!skip(k)) prefill[k] = v;
+          }
+        }
+
         setDetail({ ...data, fullTemplate });
         setValues(prefill);
       })
@@ -575,7 +588,6 @@ function HumanTasksView() {
   return (
     <>
       <TopNav />
-
       {openTask && (
         <TaskFormPanel
           task={openTask}
@@ -588,8 +600,8 @@ function HumanTasksView() {
         {/* Topbar */}
         <header className="border-b border-[#1e2130] bg-[#0b0d15]/80 backdrop-blur sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3"> 
-              <h1><b>My tasks</b></h1>                      
+            <div className="flex items-center gap-3">              
+              <h1><b>My tasks</b></h1>                
             </div>
             <div className="flex items-center gap-3">
               <button
