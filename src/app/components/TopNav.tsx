@@ -344,6 +344,13 @@ export default function TopNav() {
               </button>
 
               <button
+                onClick={() => router.push("/tasklist")}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition transform ${pressyPrimary}`}
+              >
+                My tasks
+              </button>
+
+              <button
                 onClick={() => {
                   logout();
                   router.push("/login");
