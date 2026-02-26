@@ -53,6 +53,7 @@ interface JsonSchemaProperty {
   type: "string" | "number" | "boolean" | "integer";
   enum?: string[];
   title?: string;
+  format?: "date-time" | "date" | "time";
 }
 
 interface JsonSchema {
@@ -133,6 +134,36 @@ function FormField({
           </div>
           <span className="text-sm text-slate-300">{value ? "Yes" : "No"}</span>
         </label>
+      );
+    }
+
+    if (schema.type === "string" && (schema.format === "date-time" || schema.format === "date" || schema.format === "time")) {
+      const inputType = schema.format === "date-time" ? "datetime-local" : schema.format;
+      
+      // Convert ISO string to the format HTML inputs expect
+      const displayValue = (() => {
+        if (!value) return "";
+        if (schema.format === "date-time") {
+          // datetime-local expects "YYYY-MM-DDTHH:mm"
+          return String(value).slice(0, 16);
+        }
+        return String(value);
+      })();
+
+      return (
+        <input
+          type={inputType}
+          disabled={readonly}
+          value={displayValue}
+          onChange={(e) => {
+            // Convert back to full ISO string for date-time
+            const val = schema.format === "date-time" && e.target.value
+              ? new Date(e.target.value).toISOString()
+              : e.target.value;
+            onChange(fieldKey, val);
+          }}
+          className={`${baseInput} ${borderClass} [color-scheme:dark]`}
+        />
       );
     }
 
